@@ -1,0 +1,1504 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern,microtype,amsmath,amssymb,amsthm}
+\usepackage[margin=1in]{geometry}
+\usepackage[round,authoryear]{natbib}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\allowdisplaybreaks
+\setlength{\emergencystretch}{2em}
+\providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\title{Conditioned approximation for minimax sampling and estimation}
+\author{}
+\date{November 3, 2026}
+\begin{document}
+\maketitle
+\begin{abstract}
+Sampling and estimation must be chosen for an estimand and a risk
+criterion. We study exact-size sampling and design-unbiased linear
+estimation under bounded structured residual uncertainty and positive
+diagonal noise. A natural marginal relaxation collapses to the classical
+noise-allocation floor and can miss arbitrarily large structured risk.
+Conditioning on membership of a selected set restores useful
+information. We identify a convex primal for the conditioned certificate
+and recover an actual sampling strategy by conditional dependent
+rounding. Its risk is at most \(1+2\Lambda_B\) times the joint optimum,
+where \(\Lambda_B=\max_{i\notin B}\rho^2\|F_i\|^2/d_i\); at most
+\(2^{|B|}\) convex blocks are required. The construction is exact when
+structure is supported on the conditioned set. Analytic examples
+establish sharpness and show why strong units need not be certainty
+selections. Exact optimization is NP-hard even with one feature.
+With equal noise-weighted target contributions, standard cube balancing
+already supplies near optimality in a complementary large-sample regime.
+The proposed contribution is the
+conditioned joint-strategy guarantee; minimax design, optimal
+allocation, perspectives, and dependent rounding are established
+ingredients.
+\end{abstract}
+\section{Introduction}\label{introduction}
+
+A sampling rule should be chosen for the quantity to be estimated and
+the loss attached to its error. We construct a sampling strategy that
+jointly chooses inclusion probabilities, dependence, and
+sample-dependent unbiased linear weights. The method conditions on
+membership of a selected set of units and solves a convex program over
+the resulting cells. It then draws an exact-size sample by dependent
+rounding.
+
+The guarantee depends on the structured uncertainty left outside the
+conditioned set. If its largest structured-to-noise row ratio is
+\(\Lambda_B\), the strategy from an optimal relaxed solution has risk at
+most \(1+2\Lambda_B\) times the full joint minimax optimum. Structure
+supported on the conditioned set gives exact optimality. The number of
+convex blocks is at most \(2^{|B|}\), so the method is useful when a
+small conditioning set leaves a sufficiently weak tail. A numerical
+implementation supplies a feasible strategy and risk bounds checked in
+exact arithmetic without the optimizer, even when the uniform factor is
+conservative.
+
+The contribution is this constructive guarantee and its conditions of
+usefulness. Optimal allocation, minimax design, conic perspectives, and
+dependent rounding are established ingredients. With equal noise-weighted
+target contributions, ordinary balancing already gives near optimality
+in a complementary regime; the analytic
+examples below do not establish practical superiority over optimized
+existing methods.
+
+\section{Decision problem}\label{decision-problem}
+
+Let the finite population be \(\{1,\ldots,N\}\), and let \(\mathcal A\)
+be a finite nonempty family of allowed samples. A sampling strategy
+chooses probabilities \(q_s\) on \(\mathcal A\) and estimates the linear
+target \(T_a(y)=a^Ty\). The vector \(a\), a prediction \(m_0\), a
+feature matrix \(F\in\mathbb R^{N\times d}\), positive diagonal matrix
+\(D=\operatorname{diag}(d_i)\), and radius \(\rho\ge0\) are known before
+collection. Residual uncertainty is
+
+\begin{equation}\label{eq:1}
+y-m_0=F\beta+\varepsilon,\qquad
+\|\beta\|_2\le\rho,\quad E\varepsilon=0,\quad
+\operatorname{Cov}(\varepsilon)=D\succ0. 
+\end{equation}
+
+Sampling is independent of \(\varepsilon\). Risk integrates over
+sampling and noise and maximizes over \(\beta\). The estimator class
+consists of
+
+\begin{equation}\label{eq:2}
+\widehat T=a^Tm_0+w_s^T(y-m_0),\qquad
+\operatorname{supp}(w_s)\subseteq s,\qquad
+\sum_{s\in\mathcal A}q_sw_s=a. 
+\end{equation}
+
+Weights can depend on the sample identity and precollection information,
+but not on observed residual values. The last equality is design
+unbiasedness for every population. Assume \textbf{target coverage}:
+every coordinate with \(a_i\ne0\) belongs to at least one allowed
+sample. This ensures existence of a finite-risk strategy. The class
+includes Horvitz--Thompson (HT) weights and permits more general
+sample-dependent, possibly negative weights. It excludes nonlinear and
+outcome-dependent estimators.
+
+Writing \(Q=\sum_s q_sw_sw_s^T-aa^T\), direct expansion gives
+
+\begin{equation}\label{eq:3}
+R(q,w)=\operatorname{tr}(DQ)+
+\rho^2\lambda_{\max}(F^TQF),\qquad
+R^*=\min_{q,w}R(q,w). 
+\end{equation}
+
+When \(F\) has no columns, omit the structured term in \eqref{eq:3}.
+
+The estimand enters through \(a\), and the uncertainty class enters
+through \(F,D,\rho\). Both determine the sampling decision. Structured
+minimax experimental design already uses this decision-theoretic logic;
+equal treatment marginals can make the independent-noise term constant,
+whereas free sampling marginals make allocation part of the problem.
+This is a change in the admissible decisions, not a new principle of
+optimality. (\citealp[Section 2]{Kallus2020})
+
+Joint sampling and estimation also has direct survey predecessors,
+including classical minimax survey analysis. The present mixed-risk
+problem is not asserted to be theorem-equivalent to those formulations.
+(\citealp{ChengLi1983}) For known bounded outcome intervals
+and an expected sample-size budget, a recent result optimizes over all
+design-unbiased estimators: independent inclusion with probabilities
+proportional to interval widths, capped at one, and midpoint-differenced
+HT estimation attain minimax risk. Its rectangular outcome class and
+expected-size constraint differ from \eqref{eq:1} and an exact-size
+family. This nearby solved problem precludes treating joint optimization
+itself as the contribution.
+(\citealp[Theorems 1--3]{AronowLopatto2026})
+
+Let \(P=\operatorname{conv}\{\mathbf1_s:s\in\mathcal A\}\) be the exact
+marginal polytope and define
+
+\begin{equation}\label{eq:4}
+B_P=\min_{p\in P}\sum_i a_i^2d_i(1/p_i-1). 
+\end{equation}
+
+A zero-target term is zero even at \(p_i=0\); a nonzero-target term at
+\(p_i=0\) is infinite. Coverage makes the minimum finite. For any
+strategy \eqref{eq:2}, Cauchy--Schwarz gives
+\(Ew_{S,i}^2\ge a_i^2/p_i\). The structured risk is nonnegative, so
+\(R^*\ge B_P\). Conversely, when \(\rho=0\), any noise-optimal
+\(p\in P\) can be realized by a design, and its HT estimator attains
+\eqref{eq:4}. Thus \(B_P\) is exactly the noise-only optimum in the same
+feasible family.
+
+The diagonal-noise floor is the weighted-target form of the classical
+Godambe--Joshi anticipated-variance bound. Nedyalkova and Tillé derive
+the design-unbiased linear bound, its clipped optimal allocation, and
+attainment by exactly balanced HT under their linear model. Applying
+their total-estimation formula to \(a_i(y_i-m_{0i})\) gives the variance
+term \(a_i^2d_i\) on nonzero target coordinates. The arbitrary
+feasible-family minimum in \eqref{eq:4} is the formulation used here,
+rather than a claim that every such generalization appears in the
+classical source. (\citealp{GodambeJoshi1965};
+\citealp[equation (2.9), Result 2.2, and Strategy 2.1]{NedyalkovaTille2008})
+The equation and strategy numbers refer to the reprint, not the journal
+pagination. Exact balance is the attainment condition; approximate
+landing needs a separate error bound.
+
+For all size-\(n\) samples, \(P=\{p\in[0,1]^N:\mathbf1^Tp=n\}\). If more
+than \(n\) target coefficients are nonzero, the clipped allocation
+\(p_i=\min\{1,c|a_i|\sqrt{d_i}\}\), with \(c\) chosen to fill the sample
+size, minimizes \eqref{eq:4}. Otherwise set every target inclusion
+probability to one and fill any remaining capacity with zero-target
+units; then \(B_P=0\). A noise-optimal allocation need not minimize
+\eqref{eq:3}. The distinction is whether dependence and weighting can
+suppress the structured term while retaining those marginals.
+
+\section{Method and constructive
+guarantee}\label{method-and-constructive-guarantee}
+
+We now restrict the allowed family to all size-\(n\) samples, or
+disjoint exact stratum quotas, retaining the model and estimator class
+\eqref{eq:1}--\eqref{eq:3}. Write \(B_0=B_P\) for the corresponding
+quota-constrained noise floor. No constructive assertion is made here
+for arbitrary overlapping constraints.
+
+Fix a set \(B\) of \(b\) units. Partition allowed samples by their
+intersection with \(B\), retaining only nonempty cells \(\mathcal A_j\).
+Let \(P_j=\operatorname{conv}\{1_s:s\in\mathcal A_j\}\). Each cell fixes
+the head indicators to zero or one and has an exact residual tail quota.
+The construction does not require \(b<n\).
+
+\subsection{A convex primal equal to the conditioned
+certificate}\label{a-convex-primal-equal-to-the-conditioned-certificate}
+
+For each cell choose a mass \(q_j\ge0\), an unconditional inclusion
+vector \(t_j\in q_jP_j\), and an unconditional weight contribution
+\(x_j\in\mathbb R^N\). Impose
+
+\[
+\sum_jq_j=1,\qquad \sum_jx_j=a.
+\]
+
+Use closed perspectives: \(x^2/t=0\) at \(x=t=0\), and infinity at
+\(t=0,x\ne0\). Define
+
+\[
+\begin{aligned}
+V&=\sum_{j,i}d_i\frac{x_{ji}^2}{t_{ji}}-a^TDa,\\
+W&=\sum_j\frac{(F^Tx_j)(F^Tx_j)^T}{q_j}-(F^Ta)(F^Ta)^T.
+\end{aligned}
+\]
+
+and minimize
+
+\begin{equation}\label{eq:36}
+\Phi(q,t,x)=V+\rho^2\lambda_{\max}(W). 
+\end{equation}
+
+At zero mass, finiteness forces \(t_j=x_j=0\); its matrix perspective is
+zero. For positive mass put \(p_j=t_j/q_j\) and \(k_j=x_j/q_j\). Then
+\(W=\operatorname{Cov}_j(F^Tk_j)\succeq0\). Also
+
+\begin{equation}\label{eq:37}
+V=\underbrace{\sum_jq_j\sum_i d_i k_{ji}^2(1/p_{ji}-1)}_{V_{\mathrm{within}}\ge0}
++\underbrace{\sum_i d_i\{\sum_jq_jk_{ji}^2-a_i^2\}}_{V_{\mathrm{between}}\ge0}. 
+\end{equation}
+
+Terms with \(p_{ji}=0\) are zero because \(k_{ji}=0\). This is a convex
+conic program: scalar quadratic perspectives represent the noise terms
+and matrix perspectives represent the structured second moments. There
+are at most \(2^b\) cell blocks, each polynomial in \(N,d\).
+
+\begin{proposition}\label{th:8}
+
+Write \(L_{\mathcal C}\) for the minimum of \eqref{eq:36}. It equals the
+dual certificate \eqref{eq:32}, derived in the appendix. It is attained
+and satisfies \(0\le L_{\mathcal C}\le R^*\).
+
+\end{proposition}
+
+\emph{Proof.} Aggregate any actual design by its cell. Set
+\(x_j=E[w1_{J=j}]\) and \(t_{ji}=P(J=j,i\in S)\). Coordinatewise
+Cauchy--Schwarz gives \(E[w_i^2 1_{J=j}]\ge x_{ji}^2/t_{ji}\).
+Conditional Jensen gives
+\(E[(F^Tw)(F^Tw)^T1_{J=j}]\succeq (F^Tx_j)(F^Tx_j)^T/q_j\). Thus
+\eqref{eq:36} is a relaxation. Nonnegativity follows from \eqref{eq:37}
+and \(W\succeq0\).
+
+For completeness, its dual recovers the stated conditioned certificate.
+Dualize the spectral epigraph constraint with a matrix multiplier
+\(H\succeq0,\operatorname{tr}H=1\), set \(U=\rho FH^{1/2}\), and use
+\(2z\) as the multiplier for \(\sum x_j=a\). For fixed \(p_j\in P_j\),
+minimizing over \(k_j\) gives the negative of
+
+\[
+\begin{aligned}
+J_j(H,z,p_j)
+&=\sup_k\{2z^Tk-\sum_i d_i k_i^2/p_{ji}-\|U^Tk\|^2\}\\
+&=\min_v\{\|v\|^2+\sum_i p_{ji}(z_i-u_i^Tv)^2/d_i\}.
+\end{aligned}
+\]
+
+Optimizing \(p_j\) and applying convex-concave minimax (compact \(P_j\))
+yields
+\(G_j(H,z)=\min_v\max_{p\in P_j}\{\|v\|^2+\sum_i p_i(z_i-u_i^Tv)^2/d_i\}\).
+Minimizing the cell masses yields \(-\max_jG_j\). The remaining terms
+give \(2a^Tz-G_{\mathcal C}(H,z)-a^T(D+UU^T)a\), as required.
+
+There is no duality gap: choose all cell masses positive, inclusions in
+each cell's relative interior, and supported \(x_j\) summing to \(a\),
+using target coverage. After deleting identically zero coordinates, take
+strict slack in all perspective epigraphs and the spectral upper-bound
+constraint. This is relative Slater feasibility. Positive \eqref{eq:37},
+\(V\ge0\), and \(W\succeq0\) bound the weight perspectives on objective
+sublevels; compact masses and inclusions and closed perspectives give
+attainment. Omit the spectral variables when \(\rho=0\) or there are no
+feature columns. \(\square\)
+
+\subsection{An actual sampler and a relative-risk
+guarantee}\label{an-actual-sampler-and-a-relative-risk-guarantee}
+
+Given any finite feasible point of \eqref{eq:36}:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Draw a cell \(J=j\) with probability \(q_j\).
+\item
+  Keep its fixed indicators and use mean-preserving pairwise rounding on
+  the remaining \(p_j\), separately within each stratum if applicable.
+  This preserves exact quotas and gives nonpositive off-diagonal
+  conditional indicator covariances.
+\item
+  Use weights \(w_i=I_i k_{ji}/p_{ji}=I_i x_{ji}/t_{ji}\), with zero
+  weights when \(p_{ji}=0\).
+\end{enumerate}
+
+The cell is determined by the observed sample's intersection with \(B\),
+so these are sample-dependent weights in the original class, not a
+larger class requiring unrecorded estimator randomization. Conditional
+expectation is \(E[w\mid J=j]=k_j\); hence \(Ew=a\). Conditional
+diagonal second moments are \(k_{ji}^2/p_{ji}\), so its noise risk is
+exactly \(V\).
+
+Define the computable tail strength
+
+\[
+\Lambda_B=\max_{i\notin B}\frac{\rho^2\|F_i\|^2}{d_i},
+\]
+
+with zero for an empty tail. It is fixed by the stated uncertainty
+model, not fitted using sampled outcomes.
+
+\begin{theorem}\label{th:9} (constructive approximation).
+
+The preceding sampler satisfies
+
+\begin{equation}\label{eq:38}
+R_{\mathrm{round}}\le\Phi+\Delta\le\Phi+2\Lambda_B V_{\mathrm{within}}
+\le(1+2\Lambda_B)\Phi, 
+\end{equation}
+
+where a sharper computable additive allowance is
+
+\begin{equation}\label{eq:39}
+\Delta=2\rho^2\sum_{j:q_j>0}q_j\sum_{i:0<p_{ji}<1}
+\frac{k_{ji}^2(1-p_{ji})}{p_{ji}}\|F_i\|^2. 
+\end{equation}
+
+In particular, an optimal relaxed solution gives
+
+\begin{equation}\label{eq:40}
+L_{\mathcal C}\le R^*\le R_{\mathrm{round}}
+\le(1+2\Lambda_B)L_{\mathcal C}\le(1+2\Lambda_B)R^*. 
+\end{equation}
+
+An exactly feasible relaxed solution with
+\(\Phi\le L_{\mathcal C}+\delta\) instead gives
+\(R_{\mathrm{round}}\le(1+2\Lambda_B)(R^*+\delta)\).
+
+\end{theorem}
+
+\emph{Proof.} Let \(C_j=\operatorname{Cov}(I\mid j)\). Pairwise rounding
+gives \(C_{j,i\ell}\le0\) off the diagonal, and fixed sample size gives
+\(C_j1=0\). Therefore
+
+\[
+C_j\preceq2\operatorname{diag}(p_{ji}(1-p_{ji})).
+\]
+
+Indeed, for every vector \(v\),
+\(v^TC_jv=\sum_{i<\ell}(-C_{j,i\ell})(v_i-v_\ell)^2\le2\sum_i p_{ji}(1-p_{ji})v_i^2\).
+Fixed head indicators have zero conditional covariance. By total
+covariance,
+
+\[
+F^TQF=W+\sum_jq_jF^T\operatorname{diag}(k_j/p_j)C_j\operatorname{diag}(k_j/p_j)F.
+\]
+
+Every added matrix is positive semidefinite. Its spectral contribution
+is at most its trace, which is bounded by \eqref{eq:39}. Since head
+terms vanish,
+\(\Delta\le2\Lambda_B V_{\mathrm{within}}\le2\Lambda_B V\le2\Lambda_B\Phi\).
+Add the exact noise risk. This proves all assertions. \(\square\)
+
+This proof controls the \emph{additional within-cell covariance} against
+\emph{within-cell noise risk}. It does not use the large offset
+\(a^TDa+\rho^2\|F^Ta\|^2\) from the value-only argument in the appendix.
+It needs no rank bound, no lower inclusion-probability bound, no
+\(b<n\), and no condition \(\Lambda_B<1\). A large factor is valid but
+may be uninformative.
+
+\textbf{Sharpness of the certificate factor.} With
+\(B=\varnothing,N=2,n=1,a=(1,1),D=I,\rho=1,F=(t,-t)^T\), the two-unit
+calculation in the appendix gives \(L_{\mathcal C}=2\) and
+\(R^*=2+4t^2\). Since \(\Lambda_B=t^2\), the factor \(1+2\Lambda_B\) in
+the integrality-gap inequality is attained. This establishes sharpness
+of a uniform comparison to this relaxation. It does not show that the
+rounded sampler's ratio to \(R^*\) is sharp; on this instance that
+sampler is optimal.
+
+\textbf{Sharpness for unrestricted pairwise rounding.} Take
+\(N=4,n=2,a=\mathbf1,D=I,\rho=1,F=(t,-t,t,-t)^T\), and no conditioning.
+The relaxed optimizer has \(p_i=1/2,k_i=1\) and \(\Phi=4\). Pairwise
+rounding the pairs \(\{1,2\}\) and \(\{3,4\}\) independently selects one
+unit from each. If the independent signs are \(\epsilon_1,\epsilon_2\),
+then \(F^Tw=2t(\epsilon_1+\epsilon_2)\), giving structured risk \(8t^2\)
+and total risk \(4+8t^2\). But choosing \(\{1,2\}\) or \(\{3,4\}\) with
+equal probabilities and weights two attains \(R^*=B_0=4\). Thus an
+allowed pairwise rounding implementation can attain the full ratio
+\(1+2\Lambda_B\). The reference implementation uses these pairs on this
+ordering of the rows; its within-cell rounding ignores the features.
+Reordering the feature rows to \((t,t,-t,-t)^T\) instead makes its
+rounding attain risk \(4\), with the same certificate upper bound
+\(4+8t^2\). This does not preclude a feature-aware choice of
+rounding pairs, or cube balancing, from improving the sampler.
+
+\textbf{Tolerance rule.} To obtain a factor \(1+\eta\) at an exact
+relaxed optimum, take \(B\supseteq\{i:\rho^2\|F_i\|^2/d_i>\eta/2\}\). If
+the chosen conditioning set has \(b\) members, at most \(2^b\) blocks
+suffice. For an approximate solve, take
+\(B\supseteq\{i:\rho^2\|F_i\|^2/d_i>\eta/4\}\), so
+\(2\Lambda_B\le\eta/2\) and, when the classical floor \(B_0>0\), certify
+\(\delta\le\eta B_0/(2+\eta)\). Then
+\((1+\eta/2)(R^*+\delta)\le(1+\eta)R^*\). This is a theorem about a
+finite conic formulation and its certified approximation error; a full
+finite-bit complexity and numerical-certification theorem is not
+supplied.
+
+When \(B_0=0\), every nonzero target coordinate fits in the sample
+budget; include all those coordinates and use \(w=a\), attaining risk
+zero exactly. Under disjoint quotas, the corresponding quota-constrained
+zero floor has the same implication stratum by stratum. This handles the
+zero-risk case without dividing by a risk lower bound.
+
+\textbf{A posteriori stopping rule.} With a feasible relaxed point,
+compute \(U_R=\Phi+\Delta\). With any certified conditioned-dual lower
+value \(L\), put \(L_0=\max\{B_0,L\}\). Then
+\(L_0\le R^*\le R_{\mathrm{round}}\le U_R\). If \(U_R\le(1+\eta)L_0\),
+the constructed sampler is certified within the desired factor even when
+the uniform tail bound is large. Here \(\Phi\) is a primal \emph{upper}
+value for the relaxation and must not be mistaken for a lower bound on
+\(R^*\).
+
+\section{When conditioning is
+useful}\label{when-conditioning-is-useful}
+
+If \(F_i=0\) outside \(B\), Theorem~\ref{th:9} is exact:
+the relaxed optimum recovers an optimal strategy. The selection
+decisions on the head remain randomized and optimized; conditioning does
+not force the head into every sample. The formulation can have
+exponentially fewer blocks than the full sample list when \(b\ll N\).
+
+A formal separation from two simple comparators uses
+\(N=3,n=2,D=I,\rho=1\),
+
+\[
+a=(T^{-2},1,1)^T,\qquad F=(T,0,0)^T,\qquad T\ge2.
+\]
+
+Condition on unit one. There are two cells and a zero-strength tail, so
+the constructive relaxation is exact. Censusing unit one leaves one of
+units two and three to sample and has optimum risk exactly two, by the
+tail noise floor and its HT attainment.
+
+In contrast, choose samples \(\{1,2\},\{1,3\},\{2,3\}\) with
+probabilities \(1/(2T),1/(2T),1-1/T\), and use ordinary HT. Its
+inclusion probabilities are \(\pi_1=1/T\), \(\pi_2=\pi_3=1-1/(2T)\), and
+its risk is
+
+\[
+R_{\mathrm{HT}}=\frac{1+T^2}{T^4}(T-1)+\frac{2}{2T-1}<\frac3T.
+\]
+
+Thus \(R^*<3/T\) and the census comparator's ratio diverges.
+Noise-optimal marginals have \(\pi_1=2T^{-2}/(2+T^{-2})\),
+\(\pi_2=\pi_3=2/(2+T^{-2})\). Any noise-floor-attaining strategy must
+use HT weights, and its structured risk alone equals \(1-1/(2T^2)\),
+also an unbounded ratio relative to \(R^*\). This example separates from
+censusing the strong unit and blindly optimizing noise alone. It does
+not establish superiority over an optimized cube design or all existing
+sampling algorithms; the displayed HT construction itself is a simple
+successful comparator. This one-row example is itself solved by
+classical allocation after replacing \(d_1\) by \(1+T^2\): with
+\(h=\sqrt{1+T^2}/T^2\), the exact optimum is \(R^*=2h-h^2/2\), attained
+by HT with marginals proportional to \((h,1,1)\). Thus the example
+isolates the failure of the two stated comparators; it does not show
+that the new optimization is needed for this instance.
+
+\subsection{A complementary guarantee from established
+balancing}\label{a-complementary-guarantee-from-established-balancing}
+
+A constructive comparator is cube flight followed by
+mean-preserving pairwise landing. Flight preserves auxiliary totals and
+leaves only dimension-many unresolved inclusion indicators. Pairwise
+landing preserves exact sample size and conditional marginals. These are
+established components of balanced sampling and dependent rounding. The
+risk inequalities below are deductions from those components, not claims
+that the displayed formulas were previously published verbatim.
+(\citealp{DevilleTille2004};
+\citealp[equations (5)--(7)]{Chauvet2009};
+\citealp[Theorem 2.3]{GandhiEtAl2006})
+
+\begin{proposition}\label{th:3} (a direct fixed-size risk bound).
+
+Allow all size-\(n\) samples, \(1\le n<N\), and choose \(\pi\in[0,1]^N\)
+summing to \(n\), positive on every nonzero target coordinate. Let
+\(r=\operatorname{rank}(F)\), and set
+
+\begin{equation}\label{eq:18}
+b(\pi)=\sum_i a_i^2d_i(1/\pi_i-1),\qquad
+A(\pi)=\max_{i:a_i\ne0}
+\frac{\rho^2a_i^2\|F_i\|^2}{\pi_i^2}, 
+\end{equation}
+
+where the maximum is zero for the zero target. There exists an
+exact-size, design-unbiased HT strategy, constructed by cube flight and
+pairwise landing, such that
+
+\begin{equation}\label{eq:19}
+R_{\rm cube}(\pi)\le b(\pi)+\frac{r+1}{2}A(\pi). 
+\end{equation}
+
+\end{proposition}
+
+\emph{Proof.} Write \(X_{\pi,i}=a_iF_i/\pi_i\), with zero rows for
+zero-target units. Start flight at \(\pi\) and preserve
+\(\mathbf1^Tp=n\) and \(X_\pi^Tp=X_\pi^T\pi\). A nullspace step among
+fractional coordinates, choosing its endpoints with probabilities that
+preserve the current mean, fixes at least one coordinate. At termination
+its random endpoint \(p\) satisfies
+
+\begin{equation}\label{eq:20}
+Ep=\pi,\qquad X_\pi^T(p-\pi)=0,
+\qquad \#\{i:0<p_i<1\}\le r+1. 
+\end{equation}
+
+The count follows because more than \(r+1\) fractional columns admit a
+nonzero nullspace direction for the size and feature constraints.
+Integral coordinates remain fixed.
+
+Round the remaining entries using mean-preserving pairwise steps. Each
+step changes two coordinates in opposite directions; integer sample size
+ensures that a nonintegral state has at least two fractional entries.
+Conditional on the flight endpoint, the final indicator \(S\) has
+\(E(S\mid p)=p\) and constant size. Its covariance
+\(C=\operatorname{Cov}(S\mid p)\) has nonpositive off-diagonal entries:
+martingale increments are orthogonal across steps, and each step has
+nonpositive off-diagonal covariance. Also \(C\mathbf1=0\) and
+\(C_{ii}=p_i(1-p_i)\). Consequently,
+
+\begin{equation}\label{eq:21}
+x^TCx=\sum_{i<j}(-C_{ij})(x_i-x_j)^2
+\le2\sum_i p_i(1-p_i)x_i^2. 
+\end{equation}
+
+Flight eliminated feature imbalance, so the HT structured risk is
+bounded by
+
+\begin{equation}\label{eq:22}
+\begin{aligned}
+\rho^2\lambda_{\max}\!\left(E[X_\pi^T(S-\pi)(S-\pi)^TX_\pi]\right)
+&\le \rho^2E\|X_\pi^T(S-\pi)\|^2\\
+&\le2\rho^2E\sum_i p_i(1-p_i)\|X_{\pi,i}\|^2\\
+&\le\frac{r+1}{2}A(\pi).
+\end{aligned} 
+\end{equation}
+
+The last step uses \eqref{eq:20} and \(p_i(1-p_i)\le1/4\). Marginal
+preservation gives \(ES=\pi\), and hence exact HT noise risk \(b(\pi)\),
+independently of sampling dependence. Adding the terms proves
+\eqref{eq:19}. \(\square\)
+
+Minimizing the right-hand side of \eqref{eq:19} over the cardinality
+polytope is a convex allocation problem: \(1/\pi_i\) and \(1/\pi_i^2\)
+are convex on positive coordinates, and a maximum of convex functions is
+convex. This gives a simple allocation-and-balance comparator using the
+same precollection information as the joint problem. The maximum-row
+penalty can be loose, particularly near a census, and \eqref{eq:19}
+alone supplies no sharp ratio for arbitrary heterogeneous inputs.
+
+For the family of all size-\(n\) samples, the resulting bounds give the
+explicit sandwich
+
+\begin{equation}\label{eq:19a}
+B_0\le R^*\le
+\inf_{\substack{\pi\in[0,1]^N,\ \mathbf1^T\pi=n\\
+\pi_i>0\ \text{if }a_i\ne0}}
+\left\{b(\pi)+\frac{r+1}{2}A(\pi)\right\}. 
+\end{equation}
+
+Thus collapse to the noise floor can be practically harmless when the
+balanced upper bound is close to that floor. Equation \eqref{eq:19a}
+uses the unrestricted cardinality family; it does not assert existence
+of the same cube construction for an arbitrary \(\mathcal A\).
+
+Initial certainty units never move in flight or landing. For a fixed
+\(\pi\), they can therefore be omitted from the maximum in
+\eqref{eq:18}. To preserve a convex allocation comparison, preselect a
+fixed set \(C\), \(|C|=c<n\), require \(\pi_i=1\) on \(C\), and optimize
+the remaining probabilities with budget \(n-c\). The same proof gives
+
+\begin{equation}\label{eq:19b}
+R_{{\rm cube},C}(\pi)\le
+\sum_{i\notin C}a_i^2d_i(1/\pi_i-1)
++\frac{r+1}{2}\max_{\substack{i\notin C\\a_i\ne0}}
+\frac{\rho^2a_i^2\|F_i\|^2}{\pi_i^2}. 
+\end{equation}
+
+The maximum is zero when no nonzero target remains outside \(C\). For
+each fixed \(C\), \eqref{eq:19b} is a convex optimization over the tail
+probabilities. If the maximum instead excludes whichever units the
+optimizer happens to set to one, the objective generally loses
+convexity: at a certainty boundary a previously positive maximum term
+can disappear. Selection of \(C\) is a separate discrete decision.
+Censusing a small exceptional set is consequently a relevant comparator
+to conditioning on its membership; neither procedure uniformly dominates
+the other from these bounds.
+
+\begin{corollary}\label{th:4} (equal noise-weighted target contributions).
+
+Suppose \(|a_i|\sqrt{d_i}=k>0\) for all \(i\), and
+\(\rho^2\|F_i\|^2/d_i\le\Lambda\). Uniform marginals \(\pi_i=f=n/N\) are
+noise-optimal and give
+
+\begin{equation}\label{eq:23}
+B_0=Nk^2(1-f)/f,
+\qquad
+\boxed{\frac{R_{\rm cube}}{R^*}
+\le1+\frac{(r+1)\Lambda}{2n(1-n/N)}.} 
+\end{equation}
+
+\end{corollary}
+
+\emph{Proof.} In \eqref{eq:19}, \(A(\pi)\le k^2\Lambda/f^2\). Divide by
+\(B_0\le R^*\). \(\square\)
+
+No condition \(F^Ta=0\) or \((r+1)\Lambda/(2n)<1\) is needed. In this
+regime, \eqref{eq:23} and \(B_0\le R^*\) also give
+\(B_0\le R^*\le R_{\rm cube}\le B_0\{1+(r+1)\Lambda/[2n(1-n/N)]\}\). The
+noise-floor certificate is already nearly tight when the displayed
+excess is small.
+
+Simple random sampling alone is an insufficient benchmark here. With
+\(Z=\operatorname{diag}(a)F\) and \(P_0=I-\mathbf1\mathbf1^T/N\), its
+exact risk under these uniform marginals is
+
+\begin{equation}\label{eq:24}
+R_{\rm SRS}=B_0+
+\rho^2\frac{1-f}{f}\frac{N}{N-1}
+\lambda_{\max}(Z^TP_0Z). 
+\end{equation}
+
+The resulting ratio upper bound is \(1+N\Lambda/(N-1)\), and an
+attaining example shows that this difference is substantive. Take even
+\(N>n\), even \(n\), \(a_i=d_i=1\), \(\rho>0\), and a single feature
+with half the rows \(+\sqrt{\Lambda}/\rho\) and half
+\(-\sqrt{\Lambda}/\rho\). Selecting \(n/2\) units uniformly from each
+group preserves uniform marginals and balances the estimand-weighted
+feature rows \(Z_i=a_iF_i\), so it attains \(R^*=B_0\). Since
+\(Z^TP_0Z=N\Lambda/\rho^2\), \eqref{eq:24} gives exactly
+
+\begin{equation}\label{eq:24a}
+\frac{R_{\rm SRS}}{R^*}=1+\frac{N\Lambda}{N-1}. 
+\end{equation}
+
+An upper-bound comparison alone would not establish this example's
+separation. It follows here from an explicit feasible design attaining
+the universal lower bound. Modern Gram--Schmidt-walk and thinning
+results provide additional comparators under their admissible size
+constraints. (\citealp[Theorem 4.1]{HarshawEtAl2022};
+\citealp{CarrellEtAl2025})
+
+\section{Computable certificates and
+implementation}\label{computable-certificates-and-implementation}
+
+The reference implementation solves the conditional conic program with
+CVXPY and Clarabel. It scales the coordinates by their noise standard
+deviations and centers the perspective terms to avoid cancellation.
+Numerical outputs propose a strategy and dual witnesses; the numerical
+optimizer's termination status does not certify them.
+
+Cell masses, conditional inclusion probabilities, and weight
+contributions are repaired in rational arithmetic. The repair preserves
+exact quotas and restores unbiasedness. When a joint inclusion
+probability decreases, its contribution is reduced proportionately
+before the unbiasedness correction, preventing the probability repair
+from amplifying the proposed sample weight. Zero-target coordinates
+remain available as control variates.
+
+A verifier checks feasibility, the complete family of feasible head
+patterns, and both risk witnesses without calling the optimizer. It
+shares arithmetic routines with certificate construction; the stored
+witnesses also permit third-party checking. The upper bound uses
+exact noise and covariance calculations and a rational
+positive-semidefiniteness check of a spectral upper witness. The lower
+bound uses a repaired trace-one positive definite adversary and exact
+cellwise score maximization; an independently valid noise witness
+remains available if dual recovery fails. Bounds refer to the binary64
+input values interpreted exactly, not to uncertainty about the chosen
+model.
+
+The optimizer minimizes the relaxed objective \(\Phi\), rather than the
+final risk upper bound \(\Phi+\Delta\). With no conditioning, the sampler's
+actual risk can attain the full \(1+2\Lambda_B\) factor in the sharpness
+example above, so poor performance need not be an artifact of a loose
+certificate.
+
+Relaxation convergence means that its certified gap meets the requested
+absolute and relative tolerances. Near optimality of the sampler
+requires the separate comparison of its risk upper bound with a positive
+lower bound on the full optimum. A small absolute tolerance can dominate
+at tiny risk scales; a purely relative request sets the absolute
+tolerance to zero. Failure to reach requested accuracy retains the
+feasible strategy and valid bounds in the returned exception.
+
+Sampling uses rational Bernoulli probabilities and pairwise rounding
+within each stratum. The mathematical guarantee applies to the exact
+weighted estimator under ideal randomness; conversion of its value to
+floating point introduces ordinary rounding error. Closed-form optima,
+exhaustive branching of small sampling trees, unit rescaling, corrupted
+witnesses, and injected numerical failures provide regression checks.
+These checks establish implementation behavior on specified cases, not
+comparative statistical performance or a finite-bit complexity theorem.
+
+\section{Relationship to prior
+work}\label{relationship-to-prior-work}
+
+\subsection{The closest prior results establish the
+ingredients}\label{the-closest-prior-results-establish-the-ingredients}
+
+Kallus's minimax design analysis supplies the spectral objective and the
+need for randomized mixtures. Classical survey theory supplies
+allocation bounds and balanced attainment. Sagnol's multiresponse
+optimal-design formulation supplies the conic design-and-weight
+perspective. Cube flight, pairwise rounding, and the fixed-sum
+covariance inequality supply the rounding tools. Disaggregation over
+selected binary choices is standard convex optimization. These facts
+preclude broad claims of a new sampling philosophy or a new
+convexification principle.
+
+Talovic and Tillé's robust-design analysis is particularly close. Their
+fixed-size covariance bound and design-mixture construction directly
+overlap the ingredients used here. Their mixture preserves prescribed
+first-order probabilities; its exact covariance decomposition averages
+conditional covariance over the first design. Those results do not by
+themselves optimize our inclusion probabilities and sample-dependent
+weights or establish Theorem~\ref{th:9}'s ratio.
+(\citealp[thesis Chapter 2, Corollary 3, Algorithm 1 and Result 11]{TalovicTille2025})
+
+Joint optimization itself also has recent exact solutions under other
+uncertainty classes and collection constraints, including the
+rectangular-outcome, expected-budget result cited above. The comparison
+must therefore be at the level of this conditioned guarantee, not at the
+level of optimizing a sampling design for a loss.
+
+\subsection{Conditional Optimal Sampling has a different optimization
+theorem}\label{conditional-optimal-sampling-has-a-different-optimization-theorem}
+
+The supplementary proof of García-Segador and Miranda's Theorem 3 fixes
+inclusion probabilities and an estimator depending on the design only
+through them. Expected loss is then linear in sample probabilities and
+attains its minimum at a vertex.
+(\citealp[supplementary proof, page 1]{GarciaSegadorMiranda2026})
+
+That conclusion does not extend to the minimax risk even on a shared
+fixed-marginal HT subclass. Take
+\(N=4,n=2,a=\mathbf1,D=I_4,F=I_4,\rho>0\), prescribe \(\pi_i=1/2\), and
+use \(w=2\mathbf1_S\). The marginal equations force \(p_{12}=p_{34}\),
+\(p_{13}=p_{24}\), and \(p_{14}=p_{23}\). The feasible polytope is
+therefore the simplex of mixtures of three complementary-pair designs,
+with masses \(\lambda_1,\lambda_2,\lambda_3\). Write
+
+\[
+\begin{aligned}
+v_1&=(1,1,-1,-1)^T,&v_2&=(1,-1,1,-1)^T,\\
+v_3&=(1,-1,-1,1)^T.
+\end{aligned}
+\]
+
+These vectors are orthogonal with squared norm four, giving
+
+\[
+Q=\sum_{j=1}^3\lambda_jv_jv_j^T,\qquad
+R=4+4\rho^2\max_j\lambda_j.
+\]
+
+The unique minimizing mixture is \(\lambda_j=1/3\), namely simple random
+sampling on all six samples, with risk \(4+4\rho^2/3\). Every vertex has
+risk \(4+4\rho^2\). Maximizing over outcome directions has changed a
+linear loss into a convex spectral objective whose optimum is strictly
+interior. This illustrates Kallus's mixed-strategy distinction:
+restricting the minimax optimization to these vertices would be invalid.
+The inspected COS vertex argument does not directly deliver the joint
+guarantee; an additional minimax construction and risk bound are needed.
+It is not a claim that every result of that article has been checked;
+the comparison uses its fully accessible supplementary proof.
+
+Ordinary samplewise calibration can eliminate structured error but does not by itself ensure design unbiasedness. Any regression-adjusted comparator must satisfy $Ew=a$ to belong to the benchmark class used here. Exact balance together with noise-optimal marginals already attains the universal noise floor.
+
+\section{Limits and implications}\label{limits-and-implications}
+
+Conditioning gives a finite convex representation and a constructive
+risk guarantee under exact size or disjoint quotas. It can require
+exponentially many cells, and exact rational verification can be
+expensive. The reference implementation is intended for modest
+conditioning sets and feature dimensions. No polynomial finite-bit
+solver complexity or practical dominance over optimized cube or
+Gram--Schmidt Walk procedures is established.
+
+The result covers linear estimands, a fixed precollection uncertainty
+model, and supported design-unbiased linear weights. Overlapping
+collection constraints, learned uncertainty sets, nonlinear estimands,
+nonresponse, and general variance estimation require additional
+analysis. The literature comparison supports a specific conditioned
+approximation contribution, not a claim that joint optimization or
+minimax sampling is new.
+
+\appendix
+
+\section{Exact dual and marginal
+relaxation}\label{exact-dual-and-marginal-relaxation}
+
+\subsection{The exact dual requires a global subset
+bound}\label{the-exact-dual-requires-a-global-subset-bound}
+
+For \(d>0\), introduce \(H\succeq0\), \(\operatorname{tr}H=1\), and
+
+\[
+M(H)=D+\rho^2FHF^T.
+\]
+
+If \(\rho=0\) or there are no feature columns, omit \(H\) and use
+\(M=D\). For any vector \(z\), define
+
+\begin{equation}\label{eq:5}
+g_s(H,z)=z_s^TM(H)_{ss}^{-1}z_s,
+\qquad g^*(H,z)=\max_{s\in\mathcal A}g_s(H,z), 
+\end{equation}
+
+with score zero for the empty sample.
+
+\begin{proposition}\label{th:1} (exact finite benchmark).
+
+Under \eqref{eq:1}--\eqref{eq:2}, positive diagonal noise, and target
+coverage,
+
+\begin{equation}\label{eq:6}
+R^*=\max_{H,z}
+\{2a^Tz-g^*(H,z)-a^TM(H)a\}. 
+\end{equation}
+
+Both the primal minimum and dual maximum are attained. Consequently, any
+proved upper bound \(G\ge g^*(H,z)\) gives
+
+\begin{equation}\label{eq:7}
+2a^Tz-G-a^TMa\le R^*,
+\qquad
+\frac{(a^Tz)^2}{G}-a^TMa\le R^*\quad(G>0). 
+\end{equation}
+
+The second expression optimizes the scale of \(z\). A feasible strategy
+supplies an upper bound on \(R^*\), giving a valid risk interval.
+
+\end{proposition}
+
+\emph{Proof.} Lift \(\xi_s=q_sw_s\) and impose
+
+\begin{equation}\label{eq:8}
+\begin{pmatrix}V_s&\xi_s\\\xi_s^T&q_s\end{pmatrix}\succeq0,
+\quad \sum_s\xi_s=a,\quad \operatorname{supp}(\xi_s)\subseteq s,
+\quad q\ge0,\quad \sum_sq_s=1. 
+\end{equation}
+
+Set \(Q_V=\sum_sV_s-aa^T\), constrain \(F^TQ_VF\preceq tI\), and
+minimize \(\operatorname{tr}(DQ_V)+\rho^2t\). Omit \(t\), its
+constraint, and its objective term when \(\rho=0\) or \(F\) has no
+columns. At \(q_s=0\), the block constraint forces \(\xi_s=0\); set
+\(w_s=0\) there. Otherwise it gives \(V_s\succeq \xi_s\xi_s^T/q_s\), and
+recover \(w_s=\xi_s/q_s\). Replacing every \(V_s\) by this exact
+perspective, or zero when \(q_s=0\), recovers supported unbiased weights
+without increasing either risk term. The lift is therefore exact.
+
+Summing \eqref{eq:8} gives \(Q_V\succeq0\). Positive \(D\) bounds
+\(Q_V\), each positive-semidefinite \(V_s\), and the \(\xi_s\) on
+objective sublevels. The simplex bounds \(q\); \(t\) is bounded whenever
+retained. Closedness gives primal attainment. Coverage permits positive
+\(q_s\) on every sample and supported \(\xi_s\) summing to \(a\). Taking
+\(V_s=\xi_s\xi_s^T/q_s+cI\), \(c>0\), and sufficiently large \(t\) when
+retained gives strict conic feasibility relative to the equalities.
+Strong duality follows. The samplewise dual minimization is
+\(\inf_{\operatorname{supp}(w)\subseteq s}\{w^TMw-2z^Tw\}=-g_s(H,z)\).
+The simplex constraint therefore produces \(\gamma\ge g_s(H,z)\) for
+every sample; eliminating \(\gamma\) gives \eqref{eq:6}. Equivalently,
+complete the square on each sample:
+
+\[
+w_s^TMw_s\ge 2z^Tw_s-g_s(H,z).
+\]
+
+Averaging and using unbiasedness proves the first bound in \eqref{eq:7}.
+At scale \(t\), the bound is \(2t a^Tz-t^2G-a^TMa\); maximizing this
+quadratic proves the second. \(\square\)
+
+For fixed \(H\), let \(E_s\) embed sample coordinates and put
+\(\mathcal I(q)=\sum_s q_sE_sM_{ss}^{-1}E_s^T\). Optimizing supported
+unbiased weights gives \(a^T\mathcal I(q)^+a-a^TMa\), provided \(a\)
+lies in the range of \(\mathcal I(q)\). This is multiresponse
+\(c\)-optimal design, so the perspective construction has established
+optimal-design antecedents. Its sample family can contain \(\binom Nn\)
+members; exact finite convexity is not a polynomial representation.
+Additional restrictions on the probabilities, such as expected costs or
+prescribed marginals, require their own dual terms.
+(\citealp[Theorems 3.3 and 4.3]{Sagnol2010})
+
+Fix \(H\), and factor \(M=D+UU^T\), where row \(i\) of \(U\) is
+\(u_i^T\). Completing a ridge square gives
+
+\begin{equation}\label{eq:9}
+g_s(H,z)=\min_v\left\{\|v\|^2+
+\sum_{i\in s}\frac{(z_i-u_i^Tv)^2}{d_i}\right\}. 
+\end{equation}
+
+The exchange of maximum and minimum therefore yields the upper bound
+
+\begin{equation}\label{eq:10}
+g^*(H,z)\le \min_v G_z(v),\qquad
+G_z(v)=\|v\|^2+\max_{p\in P}
+\sum_i p_i\frac{(z_i-u_i^Tv)^2}{d_i}. 
+\end{equation}
+
+For exact sample size, the maximum sums the \(n\) largest residual
+scores; for disjoint stratum quotas, it sums the appropriate largest
+scores in each stratum. The function is strongly convex and coercive in
+the feature-factor dimension. Every evaluated \(v\) gives a valid upper
+bound, without requiring convergence of its minimization.
+
+This is the standard diagonal-perspective relaxation of sparse quadratic
+optimization. Indeed, its optimized value also equals
+
+\begin{equation}\label{eq:11}
+\max_{p\in P,x}\left\{
+2z^Tx-\sum_i d_ix_i^2/p_i-\|U^Tx\|^2\right\}, 
+\end{equation}
+
+with the closed perspective at zero coordinates. Perspective and Boolean
+relaxations of this kind precede the sampling formulation.
+(\citealp[Sections 2.1--2.3]{AskariEtAl2021};
+\citealp[Sections 2--3]{PilanciEtAl2015})
+
+\begin{theorem}\label{th:2} (noise-floor collapse).
+
+For every finite allowed sample family with target coverage, every
+factor \(U\), and the exact marginal polytope \(P\),
+
+\begin{equation}\label{eq:12}
+\boxed{\sup_{z,v}\{2a^Tz-G_z(v)-a^T(D+UU^T)a\}=B_P.} 
+\end{equation}
+
+Every scaled certificate in \eqref{eq:7} obtained from \(G_z(v)>0\) is
+also at most \(B_P\). Optimizing \(v\) exactly or maximizing over \(H\)
+does not change this conclusion.
+
+\end{theorem}
+
+\emph{Proof.} Put \(w=z-Uv\) and
+
+\[
+T_P(w)=\max_{p\in P}\sum_i p_iw_i^2/d_i.
+\]
+
+Since \(a^TMa=a^TDa+\|U^Ta\|^2\), square completion yields
+
+\begin{equation}\label{eq:13}
+2a^Tz-G_z(v)-a^TMa
+=2a^Tw-T_P(w)-a^TDa-\|v-U^Ta\|^2. 
+\end{equation}
+
+For fixed \(v\), the substitution between \(z\) and \(w\) is bijective.
+The supremum over \(v\) removes the final square. The function
+\(2a^Tw-\sum_i p_iw_i^2/d_i\) is continuous, affine in \(p\), and
+concave in \(w\). Compactness and convexity of \(P\) permit
+convex-concave minimax interchange, giving
+
+\begin{equation}\label{eq:14}
+\begin{aligned}
+\sup_w\{2a^Tw-T_P(w)\}
+&=\min_{p\in P}\sup_w
+\left\{2a^Tw-\sum_i p_iw_i^2/d_i\right\}\\
+&=\min_{p\in P}\sum_i a_i^2d_i/p_i.
+\end{aligned} 
+\end{equation}
+
+The original payoff is finite and continuous even when some \(p_i=0\);
+only its evaluated supremum acquires the boundary values in
+\eqref{eq:14}. The compactness required by the interchange is supplied
+by \(P\), not by a truncation of \(w\) or exclusion of zero
+probabilities. Subtracting \(a^TDa\) proves \eqref{eq:12}. Scaling
+cannot escape the family: \(G_{tz}(tv)=t^2G_z(v)\), so each scalar
+rescaling is another value covered by \eqref{eq:13}. Finally,
+\(\sup_{z,v}\) already allows exact minimization of \(G_z(v)\) for every
+\(z\), and the conclusion holds for each \(H\) separately. \(\square\)
+
+\textbf{The exact marginal polytope is insufficient for this
+certificate.} The theorem applies even when every inclusion constraint
+induced by the sample family is retained. Replacing \(P\) by a looser
+polytope can weaken the noise bound further, but recovering \(P\)
+exactly cannot restore the structured contribution in \eqref{eq:12}. The
+limitation is specific to this unconditioned ridge/perspective
+construction. It is not an impossibility theorem for other convex
+relaxations or for sampling optimization.
+
+The information interpretation identifies the lost constraint more
+precisely. For strictly positive \(p\), define
+
+\[
+J(p)=\left[\operatorname{diag}(d_i/p_i)+UU^T\right]^{-1}.
+\]
+
+Its continuous boundary extension satisfies
+\(J(\mathbf1_s)=E_sM_{ss}^{-1}E_s^T\). For every \(z\), the ridge
+identity expresses \(z^TJ(p)z\) as the infimum over \(v\) of a function
+affine in \(p\), so \(J\) is matrix concave. Therefore
+\(J(E_q\mathbf1_S)\succeq E_qJ(\mathbf1_S)=\mathcal I(q)\). The
+relaxation replaces the actual information of a mixture of samples by
+this larger fractional information. It inflates only the diagonal of
+\(J(p)^{-1}\), retaining the full \(UU^T\); the structured term
+consequently cancels when \(a^TMa\) is subtracted. This is a concave
+extension, not a claim that it is the exact concave envelope. Other
+functions of the marginals could encode the best attainable risk at
+those marginals and need not suffer this failure.
+
+For all size-\(n\) samples, write \(B_0=B_P\). Combining the scaled
+ridge certificate with the noise floor gives exactly, whenever
+\(G_z(v)>0\),
+
+\begin{equation}\label{eq:15}
+\max\left\{0,B_0,\frac{(a^Tz)^2}{G_z(v)}-a^TMa\right\}=B_0. 
+\end{equation}
+
+More accurate ridge optimization cannot improve this lower endpoint. A
+design algorithm can still improve the feasible upper risk, but that is
+a different achievement. With stratum quotas, collapse occurs at the
+quota-constrained noise floor; an improvement over an unconstrained
+allocation bound reflects those quotas, not structured uncertainty.
+
+\subsection{A two-unit instance separates the bound from the actual
+optimum}\label{a-two-unit-instance-separates-the-bound-from-the-actual-optimum}
+
+Take \(N=2\), \(n=1\), \(a=(1,1)^T\), \(D=I\), \(\rho=1\), and
+\(F=(t,-t)^T\), with \(t>0\). If unit one is selected with probability
+\(p\), design unbiasedness forces singleton weights \(1/p\) and
+\(1/(1-p)\). Thus the general linear class equals the HT class here, and
+
+\begin{equation}\label{eq:16}
+R(p)=(1+t^2)\{1/p+1/(1-p)\}-2,
+\qquad R^*=2+4t^2,
+\qquad B_0=2. 
+\end{equation}
+
+The optimum uses \(p=1/2\). Its covariance is
+\(Q=\left(\begin{smallmatrix}1&-1\\-1&1\end{smallmatrix}\right)\), with
+noise risk two and structured risk \(4t^2\). Although \(F^Ta=0\), the
+structured component remains a nuisance in the sampled observation.
+Orthogonality of the target and the feature does not make estimation
+costless.
+
+For \(z=(1,1)^T\), both sample scores equal \(1/(1+t^2)\), while
+
+\begin{equation}\label{eq:17}
+G_z(v)=v^2+(1+t|v|)^2,
+\qquad \min_vG_z(v)=1. 
+\end{equation}
+
+Both feasible subsets are already optimal for the true score. The
+discrepancy is entirely in the upper relaxation. Equation \eqref{eq:12}
+nevertheless limits its optimized risk certificate to two, while
+\(R^*/B_0=1+2t^2\) diverges. This example rules out fixing the
+certificate merely by improving the subset rounding rule.
+
+\section{Conditioned dual and supporting pricing
+bounds}\label{conditioned-dual-and-supporting-pricing-bounds}
+
+Conditioning restricts fractional information to a union of cell
+polytopes with fixed inclusion decisions, rather than maximizing it over
+their full convex hull. The ridge representation expresses that
+restriction through separate node variables. This removes some of the
+information inflation identified above; it is not a general prohibition
+against methods expressed through marginals.
+
+\begin{proposition}\label{th:5} (membership-conditioned bounds).
+
+Fix \(H,z\), and write the expression inside braces in \eqref{eq:9} as
+\(f_s(v)\). Partition \(\mathcal A\) into nonempty cells
+\(\mathcal A_j\) according to membership of a chosen set of \(b\) units.
+Define
+
+\begin{equation}\label{eq:25}
+G_{\mathcal C}=\max_j\min_v\max_{s\in\mathcal A_j}f_s(v). 
+\end{equation}
+
+\begin{equation}\label{eq:26}
+g^*(H,z)\le G_{\mathcal C}\le\min_v\max_{s\in\mathcal A}f_s(v). 
+\end{equation}
+
+Refining the partition cannot increase \(G_{\mathcal C}\). If every cell
+contains one sample, \eqref{eq:25} equals the exact score maximum.
+
+\end{proposition}
+
+\emph{Proof.} Each cell obeys the max-min inequality in \eqref{eq:10},
+so its optimized ridge bound dominates every sample score in that cell.
+Taking the maximum gives the first inequality. For any common \(v\),
+each cell minimum is at most its value at \(v\); maximizing across cells
+and minimizing over this common vector gives the second inequality. Each
+child cell is a subfamily of its parent, so its bound is at most the
+parent's bound. Singleton cells are exact by \eqref{eq:9}. \(\square\)
+
+For a cardinality constraint, a cell's additive maximization includes
+the forced-in scores, excludes forced-out scores, and selects the
+largest remaining scores needed to fill the residual quota. Disjoint
+strata use their residual quotas separately. Every cell is therefore
+another low-dimensional convex problem. At most \(2^b\) cells occur, and
+infeasible membership patterns are discarded. Exactness can require
+exponentially many cells. This is standard branching, not a new
+computational principle or a polynomial-time guarantee.
+
+Approximate cell solves remain valid: evaluate any \(v_j\) in each cell
+and maximize the resulting upper bounds. Monotonicity of these raw
+evaluations does not follow automatically from refinement. A child can
+inherit its parent's evaluated vector and retain the smaller of that
+valid bound and a new evaluated bound, ensuring monotonicity without
+assuming convergence. Arithmetic errors still require certified bounds
+if a rigorous floating-point interval is claimed.
+
+\textbf{The conditioning repair is strict in \eqref{eq:16}.}
+Conditioning on inclusion of unit one leaves two singleton cells. At
+\(z=(1,1)^T\), each optimized cell bound is \(1/(1+t^2)\). The scaled
+lower certificate is therefore
+
+\begin{equation}\label{eq:27}
+\frac{(a^Tz)^2}{G_{\mathcal C}}-a^TMa
+=4(1+t^2)-2=2+4t^2=R^*. 
+\end{equation}
+
+One inclusion decision restores all missing structured risk in this
+analytical example. The result establishes a discriminating test for
+another relaxation: it should certify some positive part of \(R^*-B_P\)
+on an instance where that premium is unavoidable. Success on the
+two-unit test does not establish usefulness for large frames.
+
+\subsection{A small exceptional set gives a quantitative pricing
+guarantee}\label{a-small-exceptional-set-gives-a-quantitative-pricing-guarantee}
+
+\begin{theorem}\label{th:6} (conditioning with a controlled tail).
+
+Allow all size-\(n\) samples. Fix \(H,z\), use a factor \(U\) with at
+most \(r\) columns, and choose a set \(B\) of \(b<n\) units such that
+
+\begin{equation}\label{eq:28}
+\|u_i\|^2/d_i\le\Lambda_{\rm tail}\quad(i\notin B),
+\qquad
+\epsilon_B=\frac{(r+1)\Lambda_{\rm tail}}{2(n-b)}<1. 
+\end{equation}
+
+There is no restriction on the feature magnitudes inside \(B\). Solve
+the convex ridge problem in each feasible membership cell, sparsify its
+exact saddle point, and round the remaining fractional coordinates. The
+largest returned score satisfies
+
+\begin{equation}\label{eq:29}
+g_{\widehat s}\ge(1-\epsilon_B)G_{\mathcal C}
+\ge(1-\epsilon_B)g^*(H,z). 
+\end{equation}
+
+The construction uses at most \(2^b\) convex node problems. The
+condition \(\rho^2\|F_i\|^2/d_i\le\Lambda_{\rm tail}\) outside \(B\)
+makes the guarantee uniform over all admissible \(H\).
+
+\end{theorem}
+
+\emph{Proof.} A cell fixes the selected subset \(A\subseteq B\),
+excludes \(B\setminus A\), and leaves free quota \(m=n-|A|\ge n-b>0\) in
+\(B^c\). Its objective is
+
+\[
+G_A(v)=\|v\|^2+\sum_{i\in A}\ell_i(v)
++\operatorname{Top}_m\{\ell_i(v):i\notin B\},
+\qquad \ell_i(v)=(z_i-u_i^Tv)^2/d_i.
+\]
+
+At an exact saddle point, the free fractional vector \(p\) has sum \(m\)
+and satisfies \(v=\sum_{i\in A}b_i(v)+\sum_{i\notin B}p_i b_i(v)\),
+where \(b_i(v)=u_i(z_i-u_i^Tv)/d_i\). Preserving these \(r\) equations
+and the active face leaves at most \(r+1\) fractional free coordinates.
+The fixed contribution from \(A\) changes the right-hand side of the
+stationarity equations, not their number.
+
+Use the common inverse upper bound
+\(W_A=(I+\sum_{i\in A}u_iu_i^T/d_i)^{-1}\preceq I\). Every completion
+contains \(A\). Fractional free coordinates can remain only when
+\(0<m<N-b\). Let \(\tau\) be the \(m\)th largest free score. Exchange
+optimality on the active maximizing face forces every fractional
+coordinate to tie at \(\tau\), so \(G_A^*\ge m\tau\). The rounding
+calculation in the appendix, with zero score and stationarity residuals,
+gives
+
+\[
+G_A^*-g_{s_A}
+\le\frac{r+1}{2}\Lambda_{\rm tail}\tau
+\le\frac{(r+1)\Lambda_{\rm tail}}{2m}G_A^*
+\le\epsilon_B G_A^*.
+\]
+
+An integral saddle point is exact, and \(\tau=0\) gives zero rounding
+error directly. Apply this inequality to a cell attaining
+\(G_{\mathcal C}=\max_A G_A^*\), and choose the best returned sample
+over all cells. This proves \eqref{eq:29}. Finally, \(H\preceq I\)
+implies \(\|u_i\|^2=\rho^2F_iHF_i^T\le\rho^2\|F_i\|^2\), proving
+uniformity. \(\square\)
+
+Approximate node solutions use the full score-gap, stationarity, and
+rounding errors rather than assuming \eqref{eq:29}. If node \(A\) has
+evaluated upper bound \(\widetilde G_A\), returned score \(g_{s_A}\),
+and proved error \(E_A\ge\widetilde G_A-g_{s_A}\), then
+
+\begin{equation}\label{eq:30}
+0\le\max_A\widetilde G_A-\max_Ag_{s_A}\le\max_AE_A. 
+\end{equation}
+
+This follows by considering a node attaining the largest upper bound.
+The explicit expression for \(E_A\) is the difference between its upper
+bound and the right-hand side of the deterministic version of
+\eqref{eq:42}, including all fixed coordinates. Thus inexact convex
+solves need not be treated as exact saddle points.
+
+There is a sharper zero-tail case. If \(u_i=0\) for every \(i\notin B\),
+the requirement \(b<n\) is unnecessary. Each feasible cell has exact
+optimized score
+
+\begin{equation}\label{eq:31}
+z_A^T(D_A+U_AU_A^T)^{-1}z_A
++\operatorname{Top}_{n-|A|}\{z_i^2/d_i:i\notin B\}. 
+\end{equation}
+
+The selected covariance is block diagonal between \(A\) and the free
+units, proving the formula. Maximizing over at most \(2^b\) cells gives
+exact pricing; cells with infeasible residual quotas are discarded. The
+choice \(F_i=0\) outside \(B\) suffices uniformly over adversaries.
+
+Theorem~\ref{th:6} supplies a cost/accuracy statement
+for a small number of strong rows and a weak tail. It is a consequence
+of conditioning and the established rounding bound, not a new branching
+principle. As \(b\) approaches \(n\), the conservative factor in
+\eqref{eq:28} degrades even though the optimized bound \eqref{eq:25}
+improves monotonically. The next result gives the corresponding
+minimax-value guarantee and retains the estimand-dependent subtraction
+explicitly.
+
+\subsection{Conditioning gives a convex minimax-value
+certificate}\label{conditioning-gives-a-convex-minimax-value-certificate}
+
+\begin{corollary}\label{th:7} (conditioned value approximation).
+
+Suppose a fixed membership partition satisfies, uniformly over \(H,z\),
+\(g^*(H,z)\le G_{\mathcal C}(H,z)\le g^*(H,z)/\alpha\), where
+\(0\le\epsilon<1\) and \(\alpha=1-\epsilon\).
+Theorem~\ref{th:6} supplies \(\epsilon=\epsilon_B\) for
+the family of all size-\(n\) samples, conditioning on \(b<n\) units,
+with \(r\ge\operatorname{rank}(F)\) and the uniform bound
+\(\rho^2\|F_i\|^2/d_i\le\Lambda_{\rm tail}\) outside that set. Other
+families require their own uniform factor; the cardinality factor is not
+asserted for partition quotas. Define
+
+\begin{equation}\label{eq:32}
+\begin{aligned}
+L_{\mathcal C}&=\sup_{H,z}
+\{2a^Tz-G_{\mathcal C}(H,z)-a^TM(H)a\},\\
+C_a&=a^TDa+\rho^2\|F^Ta\|^2.
+\end{aligned} 
+\end{equation}
+
+Then
+
+\begin{equation}\label{eq:33}
+\boxed{\max\{B_P,R^*-\epsilon(R^*+C_a)\}
+\le L_{\mathcal C}\le R^*.} 
+\end{equation}
+
+In particular, a certified optimization bracket
+\(L_-\le L_{\mathcal C}\le L_+\) yields
+
+\begin{equation}\label{eq:34}
+\boxed{\max\{B_P,L_-\}\le R^*
+\le\frac{L_++\epsilon C_a}{1-\epsilon}.} 
+\end{equation}
+
+This is a bound on the minimax value in \eqref{eq:3}, not the risk of a
+constructed estimator.
+
+\end{corollary}
+
+\emph{Proof.} Weak duality gives \(L_{\mathcal C}\le R^*\). Conditioning
+decreases the unconditioned pricing bound, so
+Theorem~\ref{th:2} gives \(L_{\mathcal C}\ge B_P\). At
+an exact maximizer \((H^*,z^*)\) of \eqref{eq:6}, put
+\(\gamma=g^*(H^*,z^*)\) and \(c^*=a^TM(H^*)a\). Scalar stationarity of
+the quadratic objective along \(tz^*\) gives \(a^Tz^*=\gamma\) and
+\(R^*=\gamma-c^*\). For a nonzero target, \(\gamma=R^*+c^*>0\), since
+\(R^*\ge0\) and \(c^*\ge a^TDa>0\). Homogeneity gives
+\(G_{\mathcal C}(H,tz)=t^2G_{\mathcal C}(H,z)\), so evaluation at
+\(\alpha z^*\) gives
+
+\[
+\begin{aligned}
+L_{\mathcal C}
+&\ge2\alpha\gamma-\alpha^2G_{\mathcal C}(H^*,z^*)-c^*\\
+&\ge\alpha\gamma-c^*
+=R^*-\epsilon(R^*+c^*).
+\end{aligned}
+\]
+
+Every admissible \(H\preceq I\), so \(c^*\le C_a\), proving
+\eqref{eq:33}. For \(a=0\), both \(R^*\) and \(L_{\mathcal C}\) are
+zero. Rearranging \((1-\epsilon)R^*\le L_{\mathcal C}+\epsilon C_a\),
+then using the certified upper endpoint \(L_+\), proves \eqref{eq:34}.
+\(\square\)
+
+A feasible point of the maximization in \eqref{eq:32} provides only a
+lower bound on \(L_{\mathcal C}\). Substituting that value for \(L_+\)
+in \eqref{eq:34} is invalid; the upper endpoint needs a certified
+optimization upper bound, for example an appropriate conic dual bound. A
+feasible sampling strategy with risk \(U_R\) can independently tighten
+the right endpoint to the smaller of \(U_R\) and \eqref{eq:34}.
+Proposition~\ref{th:8} identifies a primal of
+\eqref{eq:32} from which Theorem~\ref{th:9} constructs
+such a strategy.
+
+The optimization in \eqref{eq:32} is convex. Let \(\Omega=\rho^2H\).
+Replacing a node's ridge variable by \(h=\Omega^{1/2}v\) gives its
+optimized bound as
+
+\[
+G_j(H,z)=\inf_h\left\{h^T\Omega^+h+
+\max_{s\in\mathcal A_j}\sum_{i\in s}(z_i-F_ih)^2/d_i\right\},
+\]
+
+where the matrix perspective is infinite unless
+\(h\in\operatorname{range}(\Omega)\). The perspective and the residual
+squares are jointly convex in their variables; partial minimization and
+the maximum over nodes preserve convexity. Thus \(G_{\mathcal C}\) is
+jointly convex in \(H,z\), and the objective in \eqref{eq:32} is
+concave.
+
+For cardinality or disjoint partition-quota cells, an explicit conic
+formulation uses separate \(h_j,t_j\) in each node. Let \(A_j\) be its
+forced-in set, \(R_j\) its free set, and \(m_j\) its residual quota.
+Introduce residual upper bounds \(\ell_{ij}\), free-score threshold
+\(\theta_j\), nonnegative excesses \(e_{ij}\), and one common bound
+\(T\). Impose
+
+\begin{equation}\label{eq:35}
+\begin{gathered}
+\begin{pmatrix}\rho^2H&h_j\\h_j^T&t_j\end{pmatrix}\succeq0,
+\qquad d_i\ell_{ij}\ge(z_i-F_ih_j)^2,\\
+e_{ij}\ge\ell_{ij}-\theta_j,\quad e_{ij}\ge0\quad(i\in R_j),\\
+T\ge t_j+\sum_{i\in A_j}\ell_{ij}
++m_j\theta_j+\sum_{i\in R_j}e_{ij}.
+\end{gathered} 
+\end{equation}
+
+The block constraint enforces the range condition as well as the
+quadratic perspective. Residual constraints are rotated
+second-order-cone constraints. Maximizing
+\(2a^Tz-T-a^TDa-\rho^2(F^Ta)^TH(F^Ta)\) subject to \eqref{eq:35} and
+\(H\succeq0,\operatorname{tr}H=1\) represents \eqref{eq:32}. For
+partition quotas, use one threshold and excess sum per stratum. Zero or
+full residual quotas can be written directly. When \(\rho=0\) or \(F\)
+has no columns, omit \(H,h_j,t_j\) and the structured term, leaving the
+ordinary diagonal scores \(z_i^2/d_i\). No inversion of a singular \(H\)
+is needed.
+
+For \(\rho>0\) and \(d>0\), choose \(H=I/d\), \(h_j=0\), \(t_j>0\), and
+strict slack in the residual, excess, and \(T\) inequalities. This gives
+relative strict conic feasibility; finite value then gives strong conic
+duality. It supports arbitrarily tight upper optimization bounds in
+exact mathematics, not automatic certification from floating-point
+residuals.
+
+The number of node blocks is at most \(2^b\). This finite representation
+does not establish a finite-bit complexity bound or numerical
+certification from ordinary residual tolerances. The constructive result in Theorem~\ref{th:9}
+supplies a strategy without propagating the offset in
+\eqref{eq:33}. The value error is informative when \(\epsilon C_a\) is
+small relative to the risk scale. In particular, \eqref{eq:33}
+guarantees a certificate strictly above \(B_P\) whenever
+\(R^*-B_P>\epsilon(R^*+C_a)\). If the target loads strongly on a
+structured direction, \(C_a\) can be large even when the achievable risk
+is small; the value approximation can then be weak despite accurate
+pricing.
+
+\section{Hardness of exact
+optimization}\label{hardness-of-exact-optimization}
+
+\begin{proposition}\label{th:10}
+
+Deciding whether \(R^*=B_0\) for the full design-unbiased linear class
+is NP-hard, already for exact half-sampling, \(a=\mathbf1,D=I,\rho=1\),
+and a single nonnegative integer feature column.
+
+\end{proposition}
+
+\emph{Proof.} Given positive integers \(c_1,\ldots,c_m\) in PARTITION,
+take \(N=2m,n=m\), and \(F=(c_1,\ldots,c_m,0,\ldots,0)^T\). The noise
+floor is \(B_0=N\). Equality in the strictly convex marginal allocation
+bound forces every \(\pi_i=1/2\). Equality in coordinatewise
+Cauchy--Schwarz then forces \(w_i=2I_i\) almost surely. Equality in
+total risk additionally requires
+
+\[
+2\sum_{i\in S}F_i=\sum_iF_i
+\]
+
+on every supported sample. Such a sample supplies a solution to
+PARTITION. Conversely, a partition of the original numbers can be padded
+with zero-feature units to size \(m\). Assign probability one half each
+to that sample and its complement. It has marginals one half, uses
+weights \(2I_i\), and exactly balances \(F\), attaining \(N\). The
+transformation has polynomial bit length. Attainment follows from
+Proposition~\ref{th:8} and
+Theorem~\ref{th:9} with all units conditioned, where the
+cells are singleton samples and the rounding loss is zero. Thus equality
+at the floor cannot be an unattained infimum. \(\square\)
+
+This is hardness of the statistical optimization itself, not merely of
+subset pricing. The reduction uses weakly NP-complete PARTITION. It does
+not prove strong NP-hardness, a constant-factor inapproximability
+barrier, or the impossibility of an FPTAS. It also gives an obstruction
+to multiplicatively approximating the \emph{excess} \(R^*-B_0\): a
+finite factor would need to detect its exact zero. That observation
+concerns an exact guarantee and does not establish a positive
+additive-gap hardness bound.
+
+\section{Supporting quadratic rounding
+bound}\label{supporting-quadratic-rounding-bound}
+
+Fix \(M=D+UU^T\), \(z,v\), and feasible fractional marginals \(p\) under
+an exact size or disjoint quota constraint. Put
+
+\[
+\ell_i=(z_i-u_i^Tv)^2/d_i,\quad
+b_i=u_i(z_i-u_i^Tv)/d_i,\quad
+C_s=I+\sum_{i\in s}u_iu_i^T/d_i.
+\]
+
+\begin{equation}\label{eq:41}
+f_s(v)-g_s=
+\left(v-\sum_{i\in s}b_i\right)^T
+C_s^{-1}
+\left(v-\sum_{i\in s}b_i\right). 
+\end{equation}
+
+Equation \eqref{eq:41} follows by expanding \eqref{eq:9} around its
+minimum.
+
+Let \(W\succeq C_s^{-1}\) for all rounded completions. The choice
+\(W=I\) always works; if \(A=\{i:p_i=1\}\), the sharper choice
+\(W=(I+\sum_{i\in A}u_iu_i^T/d_i)^{-1}\) is valid because every
+completion contains \(A\). Conditional negatively correlated rounding
+has mean \(p\) and covariance satisfying \eqref{eq:21}. With
+\(e=v-\sum_i p_ib_i\), \eqref{eq:41} gives
+
+\begin{equation}\label{eq:42}
+E g_S\ge \|v\|^2+\sum_i p_i\ell_i-e^TWe
+-2\sum_i p_i(1-p_i)\|b_i\|_W^2. 
+\end{equation}
+
+Consequently some feasible sample attains this bound. A deterministic
+construction uses
+
+\[
+\Psi(x)=\sum_i x_i\ell_i-
+\left\|v-\sum_i x_ib_i\right\|_W^2
+-2\sum_i x_i(1-x_i)\|b_i\|_W^2.
+\]
+
+Along a quota-preserving swap \(x_i\mapsto x_i+t\),
+\(x_j\mapsto x_j-t\), its quadratic coefficient is
+\(\|b_i+b_j\|_W^2\ge0\). Choosing the better endpoint preserves or
+increases \(\Psi\), proving the deterministic version of \eqref{eq:42}.
+This is a specialization of deterministic pipage rounding.
+(\citealp{AgeevSviridenko2004};
+\citealp[Theorem 7.2]{HarveyOlver2013})
+
+At an exact ridge saddle point, preserve its active maximizing face and
+\(r\) stationarity equations while eliminating fractional coordinates.
+If more fractional coordinates remain than the number of independent
+equality rows, a nonzero nullspace move fixes another coordinate at an
+endpoint. The remaining count is therefore at most \(r+1\) for a uniform
+quota. For partition quotas, \(f\) fractional coordinates in \(h\)
+fractional strata satisfy \(f\le r+h\) and \(f\ge2h\), hence \(f\le2r\).
+Approximate nonactive inputs preserve their linear score as one
+additional equality. The counts become \(f\le r+2\) for a uniform quota
+and \(f\le r+h+1\), \(f\ge2h\), for partition quotas, giving
+\(f\le2(r+1)\). These are elementary extreme-point counts of the same
+kind used in cube flight.
+
+The factor two in \eqref{eq:42} is sharp for this generic diagonal
+variance bound when a valid exact common inverse is used. In
+\eqref{eq:17}, the saddle point has \(p=(1/2,1/2)\), \(v=0\),
+\(b_1=-b_2=t\), and exact common inverse \(W=1/(1+t^2)\). The loss in
+\eqref{eq:42} equals \(t^2/(1+t^2)=1-g_s\), exactly the relaxation gap.
+The anchored choice based on initially selected units is instead \(W=I\)
+in this example. The calculation therefore does not prove sharpness of
+the constant in Theorem~\ref{th:6}.
+
+
+
+
+\footnotesize
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+\end{document}
